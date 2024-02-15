@@ -1,0 +1,73 @@
+version: '3.7'
+
+x-influxdb-credentials:
+  &influxdb-credentials
+  DOCKER_INFLUXDB_INIT_MODE: setup
+  DOCKER_INFLUXDB_INIT_USERNAME: root
+  DOCKER_INFLUXDB_INIT_PASSWORD: password
+  DOCKER_INFLUXDB_INIT_ORG: icinga
+  DOCKER_INFLUXDB_INIT_BUCKET: icinga
+  DOCKER_INFLUXDB_INIT_RETENTION: 52w
+  DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: 1QkNyip0kl8XmNK_VNK8Ub_ttefpZSy7sOdvPY5vp-6yFMZbC6fiiopCpEb_kuyL7eDXOPa9bAR_c46On5fBkQ==
+  INFLUXDB_V1_DATABASE: icinga
+  INFLUXDB_V1_USER: icinga
+  INFLUXDB_V1_PASSWORD: ${INFLUXDB_V1_PASSWORD:-icinga8CharsMIN}
+
+x-logging:
+  &default-logging
+  driver: "json-file"
+  options:
+    max-file: "10"
+    max-size: "1M"
+
+networks:
+  default:
+    name: influx-grafana
+
+services:
+
+  influxdb:
+    image: influxdb:2.7.5
+    restart: on-failure:5
+    logging: *default-logging
+    environment:
+      <<:  *influxdb-credentials
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-storage:/var/lib/influxdb2
+      - ./env/influxdb/:/docker-entrypoint-initdb.d/
+
+  grafana:
+    depends_on:
+      - influxdb
+    image: grafana/grafana:10.2.2
+    restart: on-failure:5
+    logging: *default-logging
+    environment:
+      GF_RENDERING_SERVER_URL: http://renderer:8081/render
+      GF_RENDERING_CALLBACK_URL: http://grafana:3000
+      GF_LOG_FILTERS: rendering:debug
+      DS_ICINGA2-INFLUXDB: icinga2-influxDB
+      <<:  *influxdb-credentials
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./config/grafana/icinga_dashboards.yaml:/etc/grafana/provisioning/dashboards/icinga_dashboards.yaml
+      - ./config/grafana/icinga_datasources.yaml:/etc/grafana/provisioning/datasources/icinga_datasources.yaml
+      - ./config/grafana/dashboards:/opt/icinga_dashboards
+
+  renderer:
+    depends_on:
+      - grafana
+    image: grafana/grafana-image-renderer:3.9.0
+    restart: on-failure:5
+    logging: *default-logging
+    ports:
+      - 8081
+
+
+volumes:
+  grafana-storage:
+  influxdb-storage:
