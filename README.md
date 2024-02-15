@@ -17,3 +17,9 @@ docker-compose -p influx-playground up -d
 
 docker-compose -p influx-playground down -v
 ```
+
+## Used Images:
+  * https://hub.docker.com/r/grafana/grafana-image-renderer/tags
+  * https://hub.docker.com/r/grafana/grafana/tags
+  * https://hub.docker.com/_/influxdb/tags
+

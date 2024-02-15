@@ -41,7 +41,7 @@ services:
   grafana:
     depends_on:
       - influxdb
-    image: grafana/grafana:10.2.2
+    image: grafana/grafana:10.2.4
     restart: on-failure:5
     logging: *default-logging
     environment:
@@ -61,7 +61,7 @@ services:
   renderer:
     depends_on:
       - grafana
-    image: grafana/grafana-image-renderer:3.9.0
+    image: grafana/grafana-image-renderer:3.9.1
     restart: on-failure:5
     logging: *default-logging
     ports:
