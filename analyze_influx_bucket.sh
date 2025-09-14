@@ -9,6 +9,12 @@ if [ -z "$BUCKET" ]; then
   exit 3
 fi
 
+if ! influx bucket list -n $BUCKET &>/dev/null; then
+  echo "Make sure influx cli is functional and $BUCKET exist"
+  exit 4
+fi
+
+# Query Measurements
 MEASUREMENTS=$(influx query \
   'import "influxdata/influxdb/schema"
   from(bucket:"'"$BUCKET"'")
@@ -18,12 +24,12 @@ MEASUREMENTS=$(influx query \
     |> distinct(column: "_measurement")' \
     |tail -n +5|sed 's/\s*//g' )
 
-
 if [ -n "$DEBUG" ]; then
   echo "=== Measurements in bucket $BUCKET ==="
   echo "$MEASUREMENTS"
 fi
 
+# Query Fields, Tags, Cardinality per Measurement
 for m in $MEASUREMENTS; do
   if [ -n "$DEBUG" ]; then
     echo -e "\n--- Measurement: $m ---"
@@ -63,7 +69,7 @@ for m in $MEASUREMENTS; do
     |tail -n +5|sed 's/\s*//g'|grep -vP "_start|_stop|_field|_measurement"
   fi
 
-  # Alle Tag-Keys abrufen
+  # Query all tag-keys
   TAG_KEYS=$(influx query \
   "import \"influxdata/influxdb/schema\"
   schema.measurementTagKeys(bucket: \"$BUCKET\", measurement: \"$m\")" \
