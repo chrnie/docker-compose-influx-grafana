@@ -27,7 +27,7 @@ networks:
 services:
 
   influxdb:
-    image: influxdb:2.7.5
+    image: influxdb:2.7.12
     restart: on-failure:5
     logging: *default-logging
     environment:
@@ -37,11 +37,12 @@ services:
     volumes:
       - influxdb-storage:/var/lib/influxdb2
       - ./env/influxdb/:/docker-entrypoint-initdb.d/
+      - ./scripts/influxdb/analyze_influx_bucket.sh:/analyze_influx_bucket.sh
 
   grafana:
     depends_on:
       - influxdb
-    image: grafana/grafana:10.2.4
+    image: grafana/grafana:12.1
     restart: on-failure:5
     logging: *default-logging
     environment:
@@ -61,12 +62,21 @@ services:
   renderer:
     depends_on:
       - grafana
-    image: grafana/grafana-image-renderer:3.9.1
+    image: grafana/grafana-image-renderer:v4.0.14
     restart: on-failure:5
     logging: *default-logging
     ports:
       - 8081
 
+  telegraf:
+    depends_on:
+      - influxdb
+    image: telegraf:latest
+    volumes:
+      - ./config/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    environment:
+      INFLUX_BUCKET: telegraf
+      <<:  *influxdb-credentials
 
 volumes:
   grafana-storage:
