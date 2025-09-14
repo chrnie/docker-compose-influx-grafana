@@ -37,7 +37,6 @@ services:
     volumes:
       - influxdb-storage:/var/lib/influxdb2
       - ./env/influxdb/:/docker-entrypoint-initdb.d/
-      - ./scripts/influxdb/analyze_influx_bucket.sh:/analyze_influx_bucket.sh
 
   grafana:
     depends_on:
