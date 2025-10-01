@@ -45,6 +45,11 @@ for m in $MEASUREMENTS; do
     "import \"influxdata/influxdb/schema\"
     schema.measurementFieldKeys(bucket: \"$BUCKET\", measurement: \"$m\")"
   fi
+  # Write rate per field (Points/h, last 24h)
+  FIELD_KEYS=$(influx query \
+  "import \"influxdata/influxdb/schema\"
+  schema.measurementFieldKeys(bucket: \"$BUCKET\", measurement: \"$m\")" \
+  |tail -n +5|sed 's/\s*//g')
 
   # Measurement cardinality
   M_CARD=$(influx query \
@@ -105,7 +110,41 @@ for m in $MEASUREMENTS; do
     # remove last comma
     TAGS_JSON="[${TAGS_JSON}]"
   fi
-  JSON_OUTPUT+="{\"measurement\":\"$m\",\"field_count\":$FIELD_COUNT,\"Cardinality\":$M_CARD,\"tag_count\":$TAG_COUNT,\"tags\":$TAGS_JSON},"
+
+  FIELDS_JSON=""
+  if [ -z "$FIELD_KEYS" ]; then
+    if [ -n "$DEBUG" ]; then
+      echo "No Tags"
+    fi
+    FIELDS_JSON="[]"
+  else
+    for f in $FIELD_KEYS; do
+
+      # Point count per field
+      POINT_COUNT=$(influx query \
+        "from(bucket: \"$BUCKET\")
+          |> range(start: -24h)
+          |> filter(fn: (r) => r._measurement == \"$m\" and r._field == \"$f\")
+          |> count() \
+          |> keep(columns: [\"_value\"]) \
+          |> sum(column: \"_value\")" \
+        |tail -n +5|sed 's/\s*//g')
+      if [[ \"$POINT_COUNT\" =~ ^[0-9]+$ ]]; then
+        WRITE_RATE=$(echo "\"scale=2; $POINT_COUNT/24\"" | bc)
+      else
+        WRITE_RATE=0
+      fi
+      if [ -n "$DEBUG" ]; then
+        echo "$POINT_COUNT"
+      fi
+      FIELDS_JSON+="{\"field\":\"$f\",\"point_count\":$POINT_COUNT,\"write_rate\":$WRITE_RATE},"
+
+    done
+    # remove last comma
+    FIELDS_JSON="[${FIELDS_JSON}]"
+  fi
+
+  JSON_OUTPUT+="{\"measurement\":\"$m\",\"field_count\":$FIELD_COUNT,\"Cardinality\":$M_CARD,\"tag_count\":$TAG_COUNT,\"fields\":$FIELDS_JSON},"
 done
 JSON_OUTPUT="[${JSON_OUTPUT}]"
 

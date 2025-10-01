@@ -52,3 +52,14 @@ Example:
   },
 ...
 ```
+
+## jq examples
+
+ - Top 5 Cardinality
+   - `jq 'sort_by(-.Cardinality) | .[:5] | {measurement: .[].measurement, Cardinality: .[].Cardinality}' data.json`
+ - Measurement + Cardinality
+   - `jq sort_by(-.Cardinality) | .[:5] | map({measurement, Cardinality})' data.json`
+ - Top 5 Field Counts
+   - `jq 'sort_by(-.field_count) | .[:5] | map({measurement, field_count})' data.json`
+
+
