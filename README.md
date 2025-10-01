@@ -61,5 +61,8 @@ Example:
    - `jq sort_by(-.Cardinality) | .[:5] | map({measurement, Cardinality})' data.json`
  - Top 5 Field Counts
    - `jq 'sort_by(-.field_count) | .[:5] | map({measurement, field_count})' data.json`
+ - Top 5 Fields with highest write rate
+   - ` jq '[.[] | .fields[]] | sort_by(-.write_rate) | .[:5]' data.json`
+   
 
 
